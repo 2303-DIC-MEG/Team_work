@@ -17,8 +17,10 @@ class TeamsController < ApplicationController
   end
 
   def edit
-    unless @team.owner_id == current_user.id
-      redirect_to team_path(@team), notice: I18n.t('views.messages.not_edit_team')
+    if @team.owner_id == current_user.id  
+    
+    else
+      render :show
     end
   end
 
