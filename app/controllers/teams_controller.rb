@@ -1,6 +1,7 @@
 class TeamsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_team, only: %i[show edit update destroy]
+  before_action :set_team_assign, only: %i[changeOwner]
 
   def index
     @teams = Team.all
@@ -17,7 +18,7 @@ class TeamsController < ApplicationController
 
   def edit
     unless @team.owner_id == current_user.id
-      redirect_to @team, notice: I18n.t('views.messages.not_edit_team')
+      redirect_to team_path(@team), notice: I18n.t('views.messages.not_edit_team')
     end
   end
 
@@ -51,6 +52,18 @@ class TeamsController < ApplicationController
     @team = current_user.keep_team_id ? Team.find(current_user.keep_team_id) : current_user.teams.first
   end
 
+  def changeOwner
+    if @team.owner_id == current_user.id
+      if @team.update_attribute('owner_id', @assign.user_id)
+        @user = User.find_by(id: @assign.user_id)
+        ChangeOwnerMailer.change_owner_mail(@user).deliver
+      else
+        render @team
+      end
+    end
+    redirect_to team_path(@team)
+  end
+
   private
 
   def set_team
@@ -60,4 +73,11 @@ class TeamsController < ApplicationController
   def team_params
     params.fetch(:team, {}).permit %i[name icon icon_cache owner_id keep_team_id]
   end
+
+  def set_team_assign
+    @assign = Assign.find(params[:id])
+    @team = Team.friendly.find(@assign.team_id)
+  end
 end
+
+
